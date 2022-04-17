@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -562,7 +563,7 @@ public class UserController {
                               @RequestParam int sort, @RequestParam int quantity,
                               @RequestParam String token, @RequestParam(required = false) MultipartFile image,
                               @RequestParam int action, @RequestParam(required = false) int id,
-                              HttpServletRequest request, Model model) {
+                              HttpServletRequest request, Model model){
         String goodsToken = (String) request.getSession().getAttribute("goodsToken");
 //        String publishProductToken = TokenProccessor.getInstance().makeToken();
 //        request.getSession().setAttribute("token",publishProductToken);
@@ -591,31 +592,42 @@ public class UserController {
         }
         //插入
         if (action == 1) {
-            if (StringUtils.getInstance().isNullOrEmpty(image)) {
+            if (image.isEmpty()) {
                 model.addAttribute("message", "请选择图片!!!");
                 model.addAttribute("token", goodsToken);
                 request.getSession().setAttribute("goodsToken", goodsToken);
                 return "redirect:publish_product.do?error=请插入图片";
             }
-            String random;
-            String path = "D:\\", save = "";
-            random = "image\\" + StringUtils.getInstance().getRandomChar() + System.currentTimeMillis() + ".jpg";
-            StringBuilder thumbnails = new StringBuilder();
-            thumbnails.append(path);
-            thumbnails.append("image/thumbnails/");
-            StringBuilder wsk = new StringBuilder();
-            wsk.append(StringUtils.getInstance().getRandomChar()).append(System.currentTimeMillis()).append(".jpg");
-            thumbnails.append(wsk);
-//        String fileName = "\\" + random + ".jpg";
-            File file = new File(path, random);
-            if (!file.exists()) {
-                file.mkdir();
-            }
+            String basePath = "/Users/Darren/IdeaProjects/workspace_ssm/Used-Trading-Platform-master/src/main/webapp/image/";
+            log.info("保存的根路径：" + basePath);
+            String fileName = image.getOriginalFilename();
+            String saveFileName = "/image/" + fileName;
+            log.info("文件名：" + fileName);
+            File file = new File(basePath + fileName);
             try {
                 image.transferTo(file);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+                log.info(e.getMessage());
             }
+//            String random;
+//            String path = "D:\\", save = "";
+//            random = "image\\" + StringUtils.getInstance().getRandomChar() + System.currentTimeMillis() + ".jpg";
+//            StringBuilder thumbnails = new StringBuilder();
+//            thumbnails.append(path);
+//            thumbnails.append("image/thumbnails/");
+//            StringBuilder wsk = new StringBuilder();
+//            wsk.append(StringUtils.getInstance().getRandomChar()).append(System.currentTimeMillis()).append(".jpg");
+//            thumbnails.append(wsk);
+//            String fileName = "\\" + random + ".jpg";
+//            File file = new File(path, random);
+//            if (!file.exists()) {
+//                file.mkdir();
+//            }
+//            try {
+//                image.transferTo(file);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
 /*            String pornograp = Pornographic.CheckPornograp("D:\\" + random);
             if (pornograp.equals("色情图片")) {
                 return "redirect:publish_product?error=不能使用色情图片";
@@ -624,15 +636,15 @@ public class UserController {
                 return "redirect:publish_product?error=图片不能含有敏感文字";
             }*/
             //创建缩略图文件夹
-            File thumbnailsFile = new File(thumbnails.toString());
-            if (!thumbnailsFile.exists()) {
-                thumbnailsFile.mkdir();
-            }
-            if (StringUtils.getInstance().thumbnails(path + random, thumbnails.toString())) {
-                save = "/images/thumbnails/" + wsk.toString();
-            } else {
-                return "redirect:publish_product.do?error=生成缩略图失败";
-            }
+//            File thumbnailsFile = new File(thumbnails.toString());
+//            if (!thumbnailsFile.exists()) {
+//                thumbnailsFile.mkdir();
+//            }
+//            if (StringUtils.getInstance().thumbnails(path + random, thumbnails.toString())) {
+//                save = "/images/thumbnails/" + wsk.toString();
+//            } else {
+//                return "redirect:publish_product.do?error=生成缩略图失败";
+//            }
             //begin insert the shopInformation to the MySQL
             ShopInformation shopInformation = new ShopInformation();
             shopInformation.setName(name);
@@ -642,8 +654,8 @@ public class UserController {
             shopInformation.setSort(sort);
             shopInformation.setQuantity(quantity);
             shopInformation.setModified(new Date());
-            shopInformation.setImage(random);//This is the other uniquely identifies
-            shopInformation.setThumbnails(save);
+            shopInformation.setImage(saveFileName);//This is the other uniquely identifies
+            shopInformation.setThumbnails(saveFileName);
 //        shopInformation.setUid(4);
             int uid = (int) request.getSession().getAttribute("uid");
             shopInformation.setUid(uid);
@@ -663,7 +675,7 @@ public class UserController {
                 request.getSession().setAttribute("goodsToken", goodsToken);
                 return "page/publish_product";
             }
-            int sid = shopInformationService.selectIdByImage(random);// get the id which is belongs shopInformation
+            int sid = shopInformationService.selectIdByImage(saveFileName);// get the id which is belongs shopInformation
             //将发布的商品的编号插入到用户的发布中
             UserRelease userRelease = new UserRelease();
             userRelease.setModified(new Date());
